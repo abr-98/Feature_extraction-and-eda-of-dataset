@@ -1,0 +1,995 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+    "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en">
+<head>
+<meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+<meta content="utf-8" http-equiv="encoding">
+<script type="text/javascript"
+      src="http://maps.googleapis.com/maps/api/js?key=AIzaSyCc5_z2Zruh01mevWGVavrIZ6D5N5Q_lqc&sensor=false&libraries=geometry">
+</script>
+<style>
+.color-picker,
+.color-picker::before,
+.color-picker::after,
+.color-picker *,
+.color-picker *::before,
+.color-picker *::after {
+  -webkit-box-sizing:border-box;
+  -moz-box-sizing:border-box;
+  box-sizing:border-box;
+}
+.color-picker {
+  position:absolute;
+  top:0;
+  left:0;
+  z-index:9999;
+}
+.color-picker-container {
+  background:#000;
+  color:#000;
+  padding:1px;
+  -webkit-box-shadow:1px 5px 10px rgba(0,0,0,.5);
+  -moz-box-shadow:1px 5px 10px rgba(0,0,0,.5);
+  box-shadow:1px 5px 10px rgba(0,0,0,.5);
+  width:calc(11.5em + 3px); /* TODO */
+}
+.color-picker-container *,
+.color-picker-container *::before,
+.color-picker-container *::after {border-color:inherit}
+.color-picker-container::after {
+  content:"";
+  display:table;
+  clear:both;
+}
+.color-picker i {
+  font:inherit;
+  font-size:12px; /* measure the color control size by measuring the text size */
+}
+.color-picker-h {
+  position:relative;
+  width:1.5em;
+  height:10em;
+  float:right;
+  cursor:ns-resize;
+  background:transparent url('color-picker-h.png') no-repeat 50% 50%;
+  background-image:-webkit-linear-gradient(to top,#f00 0%,#ff0 17%,#0f0 33%,#0ff 50%,#00f 67%,#f0f 83%,#f00 100%);
+  background-image:-moz-linear-gradient(to top,#f00 0%,#ff0 17%,#0f0 33%,#0ff 50%,#00f 67%,#f0f 83%,#f00 100%);
+  background-image:linear-gradient(to top,#f00 0%,#ff0 17%,#0f0 33%,#0ff 50%,#00f 67%,#f0f 83%,#f00 100%);
+  -webkit-background-size:100% 100%;
+  -moz-background-size:100% 100%;
+  background-size:100% 100%;
+  overflow:hidden;
+}
+.color-picker-h i {
+  position:absolute;
+  top:-.25em;
+  right:0;
+  left:0;
+  z-index:3;
+  display:block;
+  height:.5em;
+}
+.color-picker-h i::before {
+  content:"";
+  position:absolute;
+  top:0;
+  right:0;
+  bottom:0;
+  left:0;
+  display:block;
+  border:.25em solid;
+  border-color:inherit;
+  border-top-color:transparent;
+  border-bottom-color:transparent;
+}
+.color-picker-sv {
+  position:relative;
+  width:10em;
+  height:10em;
+  float:left;
+  margin-right:1px;
+  background:transparent url('color-picker-sv.png') no-repeat 50% 50%;
+  background-image:-webkit-linear-gradient(to top,#000,rgba(0,0,0,0)),linear-gradient(to right,#fff,rgba(255,255,255,0));
+  background-image:-moz-linear-gradient(to top,#000,rgba(0,0,0,0)),linear-gradient(to right,#fff,rgba(255,255,255,0));
+  background-image:linear-gradient(to top,#000,rgba(0,0,0,0)),linear-gradient(to right,#fff,rgba(255,255,255,0));
+  -webkit-background-size:100% 100%;
+  -moz-background-size:100% 100%;
+  background-size:100% 100%;
+  cursor:crosshair;
+}
+.color-picker-sv i {
+  position:absolute;
+  top:-.4em;
+  right:-.4em;
+  z-index:3;
+  display:block;
+  width:.8em;
+  height:.8em;
+}
+.color-picker-sv i::before,
+.color-picker-sv i::after {
+  content:"";
+  position:absolute;
+  top:0;
+  right:0;
+  bottom:0;
+  left:0;
+  display:block;
+  border:1px solid;
+  border-color:inherit;
+  -webkit-border-radius:100%;
+  -moz-border-radius:100%;
+  border-radius:100%;
+}
+.color-picker-sv i::before {
+  top:-1px;
+  right:-1px;
+  bottom:-1px;
+  left:-1px;
+  border-color:#fff;
+}
+.color-picker-h,
+.color-picker-sv {
+  -webkit-touch-callout:none;
+  -webkit-user-select:none;
+  -moz-user-select:none;
+  -ms-user-select:none;
+  user-select:none;
+  -webkit-tap-highlight-color:rgba(0,0,0,0);
+  -webkit-tap-highlight-color:transparent;
+}
+#uploading {
+    visibility: hidden;
+    min-width: 250px;
+    margin-left: -125px;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    border-radius: 2px;
+    padding: 16px;
+    position: fixed;
+    z-index: 1;
+    left: 50%;
+    bottom: 30px;
+    font-size: 17px;
+}
+#uploading.show {
+    visibility: visible;
+    -webkit-animation: fadein 0.5s, fadeout 0.5s 2.5s;
+    animation: fadein 0.5s, fadeout 0.5s 2.5s;
+}
+
+@-webkit-keyframes fadein {
+    from {bottom: 0; opacity: 0;} 
+    to {bottom: 30px; opacity: 1;}
+}
+
+@keyframes fadein {
+    from {bottom: 0; opacity: 0;}
+    to {bottom: 30px; opacity: 1;}
+}
+
+@-webkit-keyframes fadeout {
+    from {bottom: 30px; opacity: 1;} 
+    to {bottom: 0; opacity: 0;}
+}
+
+@keyframes fadeout {
+    from {bottom: 30px; opacity: 1;}
+    to {bottom: 0; opacity: 0;}
+}
+</style>
+</head>
+<body onload="initialize()">
+	<div>
+		<input type="file" id="/home/rrocks/Desktop/machine_learning/gps and wifi data/retest_mail/Bus_GPS_2017_08_03_18_46_55_314.txt" onchange="upload()"/>
+		<div id="uploading"></div>
+	</div>
+	<div style="position:absolute">
+		<br>Interval<br>
+		<input type="number" name='b' onchange = 'add(this.value)' value='1' min='1' max='100' style="width: 7em"/><br>
+		<br>Numbering<br>
+		<input type="radio" name ="check" onclick="setcheck(true)"  value=true>TRUE </input> <br>
+		<input type="radio" name ="check" onclick="setcheck(false)"  value=false>FALSE </input> <br>
+		<br>Marker<br>
+		<input type="radio" name="type" onclick="setfpfn(this.value)" value="circle" > <img src="symbol_circle.png" height="42" width="42"></input><br>
+		<input type="radio" name="type" onclick="setfpfn(this.value)" value="BACKWARD_CLOSED_ARROW" >  <img src="symbol_back_close.png" height="42" width="42"></input><br>
+		<input type="radio" name="type" onclick="setfpfn(this.value)" value="BACKWARD_OPEN_ARROW" >  <img src="symbol_back_open.png" height="42" width="42"></input><br>
+		<input type="radio" name="type" onclick="setfpfn(this.value)" value="FORWARD_OPEN_ARROW" >  <img src="symbol_fore_open.png" height="42" width="42"></input><br>
+		<input type="radio" name="type" onclick="setfpfn(this.value)" value="trails" >  <img src="symbol_back_dot.png" height="42" width="42"></input><br>
+		<br>Color<br>
+		<input type="text" name="colorpicker" onblur="setColor(this.value)" size="9"/>
+	</div>
+	<br>
+	<div id="map_canvas" style="width: 90%; height:680px; float:right; border: 1px solid #dddddd;"></div>
+<script type="text/javascript">
+var map;
+var Wait;
+var color="blue";
+var symbol="CIRCLE"
+back_hex="#e58141"
+angle="10"
+text="Stp"
+fnfp_flag=0
+var Inter=1;
+function add(any)
+{
+	Inter=parseInt(any);
+	//alert(Inter+1);
+}
+var number=false;
+function setcheck(type)
+{
+	number=type;
+}
+function setfpfn(type)
+{
+
+	switch(type)
+	{
+	    case 'stops':
+	            fnfp_flag=-1;
+	            break;
+	            
+		case 'fn':
+				//alert(trailType);
+				
+				fnfp_flag=0;// for false +ve
+				
+				break;
+		case 'fp':
+				//alert(trailType);
+				fnfp_flag=1; // For false -ve
+				
+				break;
+		case 'circle':
+				fnfp_flag=2; // For Circle
+				break;
+		case 'BACKWARD_CLOSED_ARROW':
+				fnfp_flag=3;  // For backward closed arrow
+				break;
+		case 'BACKWARD_OPEN_ARROW':
+				fnfp_flag=4; // for // backward open arrow
+				break;
+		case 'FORWARD_OPEN_ARROW':
+				fnfp_flag=5; // for forward open arrow
+				break;
+		case 'trails':
+				fnfp_flag=6; // for small circle
+				break;
+		
+		default:
+				
+
+	}
+//alert(fnfp_flag)
+}
+
+function setColor(colorCode){
+				color=colorCode;
+				angle="350";
+				back_hex=colorCode;
+}
+function upload() {
+      document.getElementById("uploading").innerHTML="uploading....";
+      var myfile=document.getElementById("/home/rrocks/Desktop/machine_learning/gps and wifi data/retest_mail/Bus_GPS_2017_08_03_18_46_55_314.txt").files[0];
+      //alert(myfile.size);
+      var r = new FileReader();
+      r.onload = function(e) { 
+	    var contents = e.target.result;
+	    parseContents(contents);
+	    //document.getElementById("cont").innerHTML=fileContent;
+	    document.getElementById("uploading").innerHTML="File uploaded: "+myfile.name;
+		snackbarFunction()
+      }
+      r.readAsText(myfile);
+	  
+}
+function parseContents(contents)
+{
+	var totalContent=contents.split("\n");
+	var lat=new Array();
+	var long=new Array();
+	var speed=new Array();
+	var bearing=new Array();
+	var timestamp=new Array();
+	var stopNo=new Array();
+	var Bearing=new Array();
+	var Theta=new Array();
+	var LatLong=new Array();
+	var sign=1;
+	var polyOptions = {
+	    strokeColor: 'green',
+	    strokeOpacity: 1.0,
+	    strokeWeight: 3
+	  }
+	var g=-1;
+	var m=0;
+	var c=0;
+	var slat,slong;
+	var f_size=totalContent.length
+	//alert(totalContent.length)
+	j=0
+	console.log(Inter);
+	for(var i=0;i<totalContent.length;)
+	{
+			var latlong=totalContent[i].trim().split(",");
+			
+			if(!isNaN(latlong[0]) && latlong.length>1)
+			{
+        	    //alert(latlong)
+			    
+			    lat[j]=parseFloat(latlong[0]);
+			    long[j]=parseFloat(latlong[1]);
+			    timestamp[j]=latlong[3];
+			  //  stopNo[j]=parseInt(latlong[6]);
+			    
+			    plotCluster(lat[j],long[j],timestamp[j],j);				
+			    j++;
+		    
+		     }
+		     i=i+Inter;
+		
+	}
+	//alert("Long: "+long+ " length: "+long.length);
+}
+
+function plotCluster(lat,long,timestamp,stopNo){
+	var latlong = new google.maps.LatLng(lat,long);
+	map.setCenter(latlong);
+	if(number==false)
+		stopNo="";
+	//var contents="Lat: "+ lat+ "Long: "+long+" Speed:"+speed+" Theta: "+Theta+" C Bearing:"+ Bearing;
+	var contents="<b>Stop: #"+stopNo+"</b><p>"+lat+",&nbsp;"+long+",&nbsp;"+timestamp
+	var infowindow = new google.maps.InfoWindow({content: contents});
+	
+	switch(fnfp_flag)
+	{	case 0:
+		var marker = new google.maps.Marker({position:latlong,draggable:false,icon:{url:"http://chart.apis.google.com/chart?chst=d_map_spin&chld=.8|"+angle+"|"+back_hex.substr(1)+"|20|b|"+stopNo},map:map});
+			break;
+    	case 2:   	
+		var marker = new google.maps.Marker({position:latlong,draggable:false,label:""+stopNo,icon:{ path: google.maps.SymbolPath.CIRCLE, fillColor: "#FFFFFF",fillOpacity:0,scale:15,strokeColor:color,strokeWeight: 1.5},map:map});
+			break;
+		case 3:
+			var marker = new google.maps.Marker({position:latlong,draggable:false,label:""+stopNo+"",icon:{ path: google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,strokeColor:color,scale: 6,strokeWeight: 1.5},map:map});
+			break;
+		case 4:
+			var marker = new google.maps.Marker({position:latlong,draggable:false,label:""+stopNo,icon:{ path: google.maps.SymbolPath.BACKWARD_OPEN_ARROW,strokeColor:color,scale: 6,strokeWeight: 1.5},map:map});
+			break;
+		case 5:
+			var marker = new google.maps.Marker({position:latlong,draggable:false,label:""+stopNo,icon:{ path: google.maps.SymbolPath.FORWARD_OPEN_ARROW,strokeColor:color,scale: 6,strokeWeight: 1.5},map:map});
+			break;
+		case 6:   	
+			var marker = new google.maps.Marker({position:latlong,draggable:false,label:""+stopNo,icon:{ path: google.maps.SymbolPath.CIRCLE, fillColor: "#FFFFFF",fillOpacity:0,scale:1,strokeColor:color,strokeWeight: 1.5},map:map});
+			break;
+	}
+	google.maps.event.addListener(marker, 'click', function() {
+    infowindow.open(map,marker);
+	})
+	// trails symbols(icons) are on this website:- https://developers.google.com/maps/documentation/javascript/symbols
+
+}
+
+
+function initialize() {
+        geocoder = new google.maps.Geocoder();
+        var myOptions = {
+          center: new google.maps.LatLng(23.5204, 87.3119),
+          zoom: 15,
+		  scaleControl: true,
+          mapTypeId: google.maps.MapTypeId.ROADMAP
+        };
+        map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);
+}
+/*!
+ * ==========================================================
+ *  COLOR PICKER PLUGIN 1.3.10
+ * ==========================================================
+ * Author: Taufik Nurrohman <https://github.com/tovic>
+ * License: MIT
+ * ----------------------------------------------------------
+ */
+(function(win, doc, NS) {
+
+    var instance = '__instance__',
+        first = 'firstChild',
+        delay = setTimeout;
+
+    function is_set(x) {
+        return typeof x !== "undefined";
+    }
+
+    function is_string(x) {
+        return typeof x === "string";
+    }
+
+    function is_object(x) {
+        return typeof x === "object";
+    }
+
+    function object_length(x) {
+        return Object.keys(x).length;
+    }
+
+    function edge(a, b, c) {
+        if (a < b) return b;
+        if (a > c) return c;
+        return a;
+    }
+
+    function num(i, j) {
+        return parseInt(i, j || 10);
+    }
+
+    function round(i) {
+        return Math.round(i);
+    }
+
+    // [h, s, v] ... 0 <= h, s, v <= 1
+    function HSV2RGB(a) {
+        var h = +a[0],
+            s = +a[1],
+            v = +a[2],
+            r, g, b, i, f, p, q, t;
+        i = Math.floor(h * 6);
+        f = h * 6 - i;
+        p = v * (1 - s);
+        q = v * (1 - f * s);
+        t = v * (1 - (1 - f) * s);
+        i = i || 0;
+        q = q || 0;
+        t = t || 0;
+        switch (i % 6) {
+            case 0:
+                r = v, g = t, b = p;
+                break;
+            case 1:
+                r = q, g = v, b = p;
+                break;
+            case 2:
+                r = p, g = v, b = t;
+                break;
+            case 3:
+                r = p, g = q, b = v;
+                break;
+            case 4:
+                r = t, g = p, b = v;
+                break;
+            case 5:
+                r = v, g = p, b = q;
+                break;
+        }
+        return [round(r * 255), round(g * 255), round(b * 255)];
+    }
+
+    function HSV2HEX(a) {
+        return RGB2HEX(HSV2RGB(a));
+    }
+
+    // [r, g, b] ... 0 <= r, g, b <= 255
+    function RGB2HSV(a) {
+        var r = +a[0],
+            g = +a[1],
+            b = +a[2],
+            max = Math.max(r, g, b),
+            min = Math.min(r, g, b),
+            d = max - min,
+            h, s = (max === 0 ? 0 : d / max),
+            v = max / 255;
+        switch (max) {
+            case min:
+                h = 0;
+                break;
+            case r:
+                h = (g - b) + d * (g < b ? 6 : 0);
+                h /= 6 * d;
+                break;
+            case g:
+                h = (b - r) + d * 2;
+                h /= 6 * d;
+                break;
+            case b:
+                h = (r - g) + d * 4;
+                h /= 6 * d;
+                break;
+        }
+        return [h, s, v];
+    }
+
+    function RGB2HEX(a) {
+        var s = +a[2] | (+a[1] << 8) | (+a[0] << 16);
+        s = '000000' + s.toString(16);
+        return s.slice(-6);
+    }
+
+    // rrggbb or rgb
+    function HEX2HSV(s) {
+        return RGB2HSV(HEX2RGB(s));
+    }
+
+    function HEX2RGB(s) {
+        if (s.length === 3) {
+            s = s.replace(/./g, '$&$&');
+        }
+        return [num(s[0] + s[1], 16), num(s[2] + s[3], 16), num(s[4] + s[5], 16)];
+    }
+
+    // convert range from `0` to `360` and `0` to `100` in color into range from `0` to `1`
+    function _2HSV_pri(a) {
+        return [+a[0] / 360, +a[1] / 100, +a[2] / 100];
+    }
+
+    // convert range from `0` to `1` into `0` to `360` and `0` to `100` in color
+    function _2HSV_pub(a) {
+        return [round(+a[0] * 360), round(+a[1] * 100), round(+a[2] * 100)];
+    }
+
+    // convert range from `0` to `255` in color into range from `0` to `1`
+    function _2RGB_pri(a) {
+        return [+a[0] / 255, +a[1] / 255, +a[2] / 255];
+    }
+
+    // *
+    function parse(x) {
+        if (is_object(x)) return x;
+        var rgb = /\s*rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)\s*$/i.exec(x),
+            hsv = /\s*hsv\s*\(\s*(\d+)\s*,\s*(\d+)%\s*,\s*(\d+)%\s*\)\s*$/i.exec(x),
+            hex = x[0] === '#' && x.match(/^#([\da-f]{3}|[\da-f]{6})$/i);
+        if (hex) {
+            return HEX2HSV(x.slice(1));
+        } else if (hsv) {
+            return _2HSV_pri([+hsv[1], +hsv[2], +hsv[3]]);
+        } else if (rgb) {
+            return RGB2HSV([+rgb[1], +rgb[2], +rgb[3]]);
+        }
+        return [0, 1, 1]; // default is red
+    }
+
+    (function($) {
+
+        // plugin version
+        $.version = '1.3.10';
+
+        // collect all instance(s)
+        $[instance] = {};
+
+        // plug to all instance(s)
+        $.each = function(fn, t) {
+            return delay(function() {
+                var ins = $[instance], i;
+                for (i in ins) {
+                    fn(ins[i], i, ins);
+                }
+            }, t === 0 ? 0 : (t || 1)), $;
+        };
+
+        // static method(s)
+        $.parse = parse;
+        $._HSV2RGB = HSV2RGB;
+        $._HSV2HEX = HSV2HEX;
+        $._RGB2HSV = RGB2HSV;
+        $._HEX2HSV = HEX2HSV;
+        $._HEX2RGB = function(a) {
+            return _2RGB_pri(HEX2RGB(a));
+        };
+        $.HSV2RGB = function(a) {
+            return HSV2RGB(_2HSV_pri(a));
+        };
+        $.HSV2HEX = function(a) {
+            return HSV2HEX(_2HSV_pri(a));
+        };
+        $.RGB2HSV = function(a) {
+            return _2HSV_pub(RGB2HSV(a));
+        };
+        $.RGB2HEX = RGB2HEX;
+        $.HEX2HSV = function(s) {
+            return _2HSV_pub(HEX2HSV(s));
+        };
+        $.HEX2RGB = HEX2RGB;
+
+    })(win[NS] = function(target, events, parent) {
+
+        var b = doc.body,
+            h = doc.documentElement,
+            $ = this,
+            $$ = win[NS],
+            _ = false,
+            hooks = {},
+            picker = doc.createElement('div'),
+            on_down = "touchstart mousedown",
+            on_move = "touchmove mousemove",
+            on_up = "touchend mouseup",
+            on_resize = "orientationchange resize";
+
+        // return a new instance if `CP` was called without the `new` operator
+        if (!($ instanceof $$)) {
+            return new $$(target, events);
+        }
+
+        // store color picker instance to `CP.__instance__`
+        $$[instance][target.id || target.name || object_length($$[instance])] = $;
+
+        // trigger color picker panel on click by default
+        if (!is_set(events) || events === true) {
+            events = on_down;
+        }
+
+        // add event
+        function on(ev, el, fn) {
+            ev = ev.split(/\s+/);
+            for (var i = 0, ien = ev.length; i < ien; ++i) {
+                el.addEventListener(ev[i], fn, false);
+            }
+        }
+
+        // remove event
+        function off(ev, el, fn) {
+            ev = ev.split(/\s+/);
+            for (var i = 0, ien = ev.length; i < ien; ++i) {
+                el.removeEventListener(ev[i], fn);
+            }
+        }
+
+        // get mouse/finger coordinate
+        function point(el, e) {
+            var T = 'touches',
+                X = 'clientX',
+                Y = 'clientY',
+                x = !!e[T] ? e[T][0][X] : e[X],
+                y = !!e[T] ? e[T][0][Y] : e[Y],
+                o = offset(el);
+            return {
+                x: x - o.l,
+                y: y - o.t
+            };
+        }
+
+        // get position
+        function offset(el) {
+            var left, top, rect;
+            if (el === win) {
+                left = win.pageXOffset || h.scrollLeft;
+                top = win.pageYOffset || h.scrollTop;
+            } else {
+                rect = el.getBoundingClientRect();
+                left = rect.left;
+                top = rect.top;
+            }
+            return {
+                l: left,
+                t: top
+            };
+        }
+
+        // get closest parent
+        function closest(a, b) {
+            while ((a = a.parentElement) && a !== b);
+            return a;
+        }
+
+        // prevent default
+        function prevent(e) {
+            if (e) e.preventDefault();
+        }
+
+        // get dimension
+        function size(el) {
+            return el === win ? {
+                w: win.innerWidth,
+                h: win.innerHeight
+            } : {
+                w: el.offsetWidth,
+                h: el.offsetHeight
+            };
+        }
+
+        // get color data
+        function get_data(a) {
+            return _ || (is_set(a) ? a : false);
+        }
+
+        // set color data
+        function set_data(a) {
+            _ = a;
+        }
+
+        // add hook
+        function add(ev, fn, id) {
+            if (!is_set(ev)) return hooks;
+            if (!is_set(fn)) return hooks[ev];
+            if (!is_set(hooks[ev])) hooks[ev] = {};
+            if (!is_set(id)) id = object_length(hooks[ev]);
+            return hooks[ev][id] = fn, $;
+        }
+
+        // remove hook
+        function remove(ev, id) {
+            if (!is_set(ev)) return hooks = {}, $;
+            if (!is_set(id)) return hooks[ev] = {}, $;
+            return delete hooks[ev][id], $;
+        }
+
+        // trigger hook
+        function trigger(ev, a, id) {
+            if (!is_set(hooks[ev])) return $;
+            if (!is_set(id)) {
+                for (var i in hooks[ev]) {
+                    hooks[ev][i].apply($, a);
+                }
+            } else {
+                if (is_set(hooks[ev][id])) {
+                    hooks[ev][id].apply($, a);
+                }
+            }
+            return $;
+        }
+
+        // initialize data ...
+        set_data($$.parse(target.getAttribute('data-color') || target.value || [0, 1, 1]));
+
+        // generate color picker pane ...
+        picker.className = 'color-picker';
+        picker.innerHTML = '<div class="color-picker-container"><span class="color-picker-h"><i></i></span><span class="color-picker-sv"><i></i></span></div>';
+        var c = picker[first].children,
+            HSV = get_data([0, 1, 1]), // default is red
+            H = c[0],
+            SV = c[1],
+            H_point = H[first],
+            SV_point = SV[first],
+            start_H = 0,
+            start_SV = 0,
+            drag_H = 0,
+            drag_SV = 0,
+            left = 0,
+            top = 0,
+            P_W = 0,
+            P_H = 0,
+            v = HSV2HEX(HSV),
+            set;
+
+        // on update ...
+        function trigger_(k, x) {
+            if (!k || k === "h") {
+                trigger("change:h", x);
+            }
+            if (!k || k === "sv") {
+                trigger("change:sv", x);
+            }
+            trigger("change", x);
+        }
+
+        // is visible?
+        function visible() {
+            return picker.parentNode;
+        }
+
+        // create
+        function create(first, bucket) {
+            if (!first) {
+                (parent || bucket || b).appendChild(picker), $.visible = true;
+            }
+            P_W = size(picker).w;
+            P_H = size(picker).h;
+            var SV_size = size(SV),
+                SV_point_size = size(SV_point),
+                H_H = size(H).h,
+                SV_W = SV_size.w,
+                SV_H = SV_size.h,
+                H_point_H = size(H_point).h,
+                SV_point_W = SV_point_size.w,
+                SV_point_H = SV_point_size.h;
+            if (first) {
+                picker.style.left = picker.style.top = '-9999px';
+                function click(e) {
+                    var t = e.target,
+                        is_target = t === target || closest(t, target) === target;
+                    if (is_target) {
+                        create();
+                    } else {
+                        $.exit();
+                    }
+                    trigger(is_target ? "enter" : "exit", [$]);
+                }
+                if (events !== false) {
+                    on(events, target, click);
+                }
+                $.create = function() {
+                    return create(1), trigger("create", [$]), $;
+                };
+                $.destroy = function() {
+                    if (events !== false) {
+                        off(events, target, click);
+                    }
+                    $.exit(), set_data(false);
+                    return trigger("destroy", [$]), $;
+                };
+            } else {
+                fit();
+            }
+            set = function() {
+                HSV = get_data(HSV), color();
+                H_point.style.top = (H_H - (H_point_H / 2) - (H_H * +HSV[0])) + 'px';
+                SV_point.style.right = (SV_W - (SV_point_W / 2) - (SV_W * +HSV[1])) + 'px';
+                SV_point.style.top = (SV_H - (SV_point_H / 2) - (SV_H * +HSV[2])) + 'px';
+            };
+            $.exit = function(e) {
+                if (visible()) {
+                    visible().removeChild(picker);
+                    $.visible = false;
+                }
+                off(on_down, H, down_H);
+                off(on_down, SV, down_SV);
+                off(on_move, doc, move);
+                off(on_up, doc, stop);
+                off(on_resize, win, fit);
+                return $;
+            };
+            function color(e) {
+                var a = HSV2RGB(HSV),
+                    b = HSV2RGB([HSV[0], 1, 1]);
+                SV.style.backgroundColor = 'rgb(' + b.join(',') + ')';
+                set_data(HSV);
+                prevent(e);
+            };
+            set();
+            function do_H(e) {
+                var y = edge(point(H, e).y, 0, H_H);
+                HSV[0] = (H_H - y) / H_H;
+                H_point.style.top = (y - (H_point_H / 2)) + 'px';
+                color(e);
+            }
+            function do_SV(e) {
+                var o = point(SV, e),
+                    x = edge(o.x, 0, SV_W),
+                    y = edge(o.y, 0, SV_H);
+                HSV[1] = 1 - ((SV_W - x) / SV_W);
+                HSV[2] = (SV_H - y) / SV_H;
+                SV_point.style.right = (SV_W - x - (SV_point_W / 2)) + 'px';
+                SV_point.style.top = (y - (SV_point_H / 2)) + 'px';
+                color(e);
+            }
+            function move(e) {
+                if (drag_H) {
+                    do_H(e), v = HSV2HEX(HSV);
+                    if (!start_H) {
+                        trigger("drag:h", [v, $]);
+                        trigger("drag", [v, $]);
+                        trigger_("h", [v, $]);
+                    }
+                }
+                if (drag_SV) {
+                    do_SV(e), v = HSV2HEX(HSV);
+                    if (!start_SV) {
+                        trigger("drag:sv", [v, $]);
+                        trigger("drag", [v, $]);
+                        trigger_("sv", [v, $]);
+                    }
+                }
+                start_H = 0,
+                start_SV = 0;
+            }
+            function stop(e) {
+                var t = e.target,
+                    k = drag_H ? "h" : "sv",
+                    a = [HSV2HEX(HSV), $],
+                    is_target = t === target || closest(t, target) === target,
+                    is_picker = t === picker || closest(t, picker) === picker;
+                if (!is_target && !is_picker) {
+                    // click outside the target or picker element to exit
+                    if (visible() && events !== false) $.exit(), trigger("exit", [$]), trigger_(0, a);
+                } else {
+                    if (is_picker) {
+                        trigger("stop:" + k, a);
+                        trigger("stop", a);
+                        trigger_(k, a);
+                    }
+                }
+                drag_H = 0,
+                drag_SV = 0;
+            }
+            function down_H(e) {
+                start_H = 1,
+                drag_H = 1,
+                move(e), prevent(e);
+                trigger("start:h", [v, $]);
+                trigger("start", [v, $]);
+                trigger_("h", [v, $]);
+            }
+            function down_SV(e) {
+                start_SV = 1,
+                drag_SV = 1,
+                move(e), prevent(e);
+                trigger("start:sv", [v, $]);
+                trigger("start", [v, $]);
+                trigger_("sv", [v, $]);
+            }
+            if (!first) {
+                on(on_down, H, down_H);
+                on(on_down, SV, down_SV);
+                on(on_move, doc, move);
+                on(on_up, doc, stop);
+                on(on_resize, win, fit);
+            }
+        } create(1);
+
+        delay(function() {
+            var a = [HSV2HEX(HSV), $];
+            trigger("create", a);
+            trigger_(0, a);
+        }, 0);
+
+        // fit to window
+        $.fit = function(o) {
+            var w = size(win),
+                y = size(h),
+                screen_w = w.w - y.w, // vertical scroll bar
+                screen_h = w.h - h.clientHeight, // horizontal scroll bar
+                ww = offset(win),
+                to = offset(target);
+            left = to.l + ww.l;
+            top = to.t + ww.t + size(target).h; // drop!
+            if (is_object(o)) {
+                is_set(o[0]) && (left = o[0]);
+                is_set(o[1]) && (top = o[1]);
+            } else {
+                var min_x = ww.l,
+                    min_y = ww.t,
+                    max_x = ww.l + w.w - P_W - screen_w,
+                    max_y = ww.t + w.h - P_H - screen_h;
+                left = edge(left, min_x, max_x) >> 0;
+                top = edge(top, min_y, max_y) >> 0;
+            }
+            picker.style.left = left + 'px';
+            picker.style.top = top + 'px';
+            return trigger("fit", [$]), $;
+        };
+
+        // for event listener ID
+        function fit() {
+            return $.fit();
+        }
+
+        // set hidden color picker data
+        $.set = function(a) {
+            if (!is_set(a)) return get_data();
+            if (is_string(a)) {
+                a = $$.parse(a);
+            }
+            return set_data(a), set(), $;
+        };
+
+        // alias for `$.set()`
+        $.get = function(a) {
+            return get_data(a);
+        };
+
+        // register to global ...
+        $.target = target;
+        $.picker = picker;
+        $.visible = false;
+        $.on = add;
+        $.off = remove;
+        $.fire = trigger;
+        $.hooks = hooks;
+        $.enter = function(bucket) {
+            return create(0, bucket);
+        };
+
+        // return the global object
+        return $;
+
+    });
+
+})(window, document, 'CP');
+var picker = new CP(document.querySelector('input[type="text"]'));
+picker.on("drag", function(color) {
+  this.target.value = '#' + color;
+});
+function snackbarFunction() {
+    var x = document.getElementById("uploading");
+    x.className = "show";
+    setTimeout(function(){ x.className = x.className.replace("show", ""); }, 3000);
+}
+</script>
+</body>
+</html>
